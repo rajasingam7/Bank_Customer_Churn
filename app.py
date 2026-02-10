@@ -1,14 +1,27 @@
 import streamlit as st
 import pandas as pd
+import os
 
 from predict import predict_churn
 from src.feature_engineering import create_features
 
 
 # --------------------------------------------------
+# Base Directory (IMPORTANT for AWS / Linux)
+# --------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_PATH = os.path.join(BASE_DIR, "data", "churn.csv")
+MODEL_RESULTS_PATH = os.path.join(BASE_DIR, "models", "model_results.csv")
+
+
+# --------------------------------------------------
 # Page Settings
 # --------------------------------------------------
-st.set_page_config(page_title="Churn Predictor", layout="wide")
+st.set_page_config(
+    page_title="Churn Predictor",
+    layout="wide"
+)
 
 st.title("🏦 Bank Customer Churn Prediction Dashboard")
 
@@ -16,9 +29,6 @@ st.title("🏦 Bank Customer Churn Prediction Dashboard")
 # --------------------------------------------------
 # Load Dataset
 # --------------------------------------------------
-DATA_PATH = "data/churn.csv"
-
-
 @st.cache_data
 def load_data():
     return pd.read_csv(DATA_PATH)
@@ -85,14 +95,14 @@ elif menu == "Model Comparison":
     st.subheader("📊 ML Model Performance Comparison")
 
     try:
-        results = pd.read_csv("models/model_results.csv")
+        results = pd.read_csv(MODEL_RESULTS_PATH)
 
         st.dataframe(results)
 
         st.subheader("📈 Model Metrics Chart")
         st.bar_chart(results.set_index("Model"))
 
-    except Exception:
+    except FileNotFoundError:
         st.warning("⚠️ model_results.csv not found. Run train.py first.")
 
 
@@ -105,33 +115,28 @@ elif menu == "Prediction":
 
     model_choice = st.selectbox(
         "Select ML Model",
-        ["Logistic Regression", "Random Forest", "SVM", "XGBoost"]
+        [
+            "Logistic Regression",
+            "Random Forest",
+            "SVM",
+            "XGBoost"
+        ]
     )
 
     col1, col2 = st.columns(2)
 
     with col1:
-
         geography = st.selectbox("Geography", ["France", "Germany", "Spain"])
-
         gender = st.selectbox("Gender", ["Male", "Female"])
-
         credit_score = st.number_input("Credit Score", 300, 900, 650)
-
         age = st.number_input("Age", 18, 100, 35)
-
         tenure = st.number_input("Tenure", 0, 10, 3)
 
     with col2:
-
         balance = st.number_input("Balance", 0.0, 250000.0, 50000.0)
-
         salary = st.number_input("Estimated Salary", 0.0, 200000.0, 60000.0)
-
         products = st.selectbox("Number of Products", [1, 2, 3, 4])
-
         has_card = st.selectbox("Has Credit Card", [0, 1])
-
         is_active = st.selectbox("Is Active Member", [0, 1])
 
     if st.button("Predict"):
@@ -160,11 +165,11 @@ elif menu == "Prediction":
             st.write(f"Churn Probability: {prob:.2%}")
             st.progress(int(prob * 100))
 
-            metrics_df = pd.read_csv("models/model_results.csv")
+            metrics_df = pd.read_csv(MODEL_RESULTS_PATH)
             selected_metrics = metrics_df[metrics_df["Model"] == model_choice]
 
             st.subheader("Model Performance Metrics")
             st.dataframe(selected_metrics)
 
         except Exception as e:
-            st.error(str(e))
+            st.error(f"Prediction failed: {str(e)}")

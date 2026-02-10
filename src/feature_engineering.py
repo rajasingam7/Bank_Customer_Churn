@@ -1,15 +1,36 @@
 import pandas as pd
 
+
 def create_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Create engineered features for churn prediction.
+    Safe for both training and inference.
+    """
+
     df = df.copy()
-    # Safe guards if columns are missing
-    if "Balance" in df and "EstimatedSalary" in df:
+
+    # --------------------------------------------------
+    # Balance / Salary ratio
+    # --------------------------------------------------
+    if {"Balance", "EstimatedSalary"}.issubset(df.columns):
         df["BalanceSalaryRatio"] = df["Balance"] / (df["EstimatedSalary"] + 1)
+    else:
+        df["BalanceSalaryRatio"] = 0
 
-    if "Age" in df:
+    # --------------------------------------------------
+    # Age group (decades)
+    # --------------------------------------------------
+    if "Age" in df.columns:
         df["AgeGroup"] = (df["Age"] // 10).astype(int)
+    else:
+        df["AgeGroup"] = 0
 
-    if "NumOfProducts" in df and "Tenure" in df:
+    # --------------------------------------------------
+    # Products per tenure
+    # --------------------------------------------------
+    if {"NumOfProducts", "Tenure"}.issubset(df.columns):
         df["ProductsPerTenure"] = df["NumOfProducts"] / (df["Tenure"] + 1)
+    else:
+        df["ProductsPerTenure"] = 0
 
     return df
